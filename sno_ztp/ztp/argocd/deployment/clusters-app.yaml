@@ -14,9 +14,9 @@ spec:
     namespace: clusters-sub
   project: ztp-app-project
   source:
-    path: site-configs
-    repoURL: https://github.com/agopala95/test-sno-ztp.git
-    targetRevision: master
+    path: sno_ztp/site-configs
+    repoURL: https://github.com/agopala95/cp4na.git
+    targetRevision: test_ztp
     # uncomment the below plugin if you will be adding the plugin binaries in the same repo->dir where
     # the sitconfig.yaml exist AND use the ../../hack/patch-argocd-dev.sh script to re-patch the deployment-repo-server
 #    plugin:
