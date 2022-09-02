@@ -1,0 +1,64 @@
+---
+apiVersion: ran.openshift.io/v1
+kind: SiteConfig
+metadata:
+  name: "test-sno-ztp"
+  namespace: "test-sno-ztp"
+spec:
+  #baseDomain: "oot.lab.eng.bos.redhat.com"
+  baseDomain: "cp4na.bos2.lab"
+  pullSecretRef:
+    name: "assisted-deployment-pull-secret"
+  clusterImageSetNameRef: "img4.9.5-x86-64-appsub"
+  #sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMIwbE8y8XoS3NaI64gDhCVMeRb/qodn3FqdTwdHbt/gC4FJQi4Q6DxUctUwbzc6hUyGiDVs4KwCIW7/gAPIHajlZ2rRFOsGaS0NIyOxKGEmEpGmYPFUjE6AsM7n+CMED9SUm7fw+QHkjh3spkPETEvm5PkLarPHB1KR4H09L/+A+kC3tfonJ3UkDm2by8aSnmJaZEvA+AHTZhhiANDM1/Hue180mse8LZ0gMXHzNAEDmvmCWNsygNwEdkfotvaJsGaup6Bt4OdsTmE3fxhWLtzK6q2MYjCKoA46UYQPzlcZjO37pytugVtYXSjkx/vfHqArD2Fxbi0BIoDrEGVJht7kkTYR1JKd3OD8ZUfLNLyhnm40rXQJB1+1j9G+JPa/y2LXF8DoajhbNkiQSWoqiEzkXOSTio/FzPQbkt4SVJNHfXvO862kkmD9NgB+52+0SKMloxX/K8lEwR15z+MIUuhH+rrPqZ1S/0LeGjjn83Q32lipHDf30q/cLhanlnP4U= openshift@nfvpe-01.oot.lab.eng.bos.redhat.com"
+  sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDsCHghGt5v9XtXgKSeiIUurcUV5VIIv8TTYwow3RIuGJRASxqjWXW6vaHA1cnjOtwZUaylOJryLDTlzP91Uy1+rsjO7ZHxrJw2/tPzoFLDd8uBoqzQESz+Y8yq5RKJ/osRsH4/r1gVA2efrAOcvXpozg4P1mUJnOuhhcslfrESqJVz2JgvDMtq8uVmG0nH/yyquwgvvpD1MMcixWnS89qKnIPRV+zcBZ3soIzC6ikGBLh8B+JnhXdhYzF8xqYrDy5VaJn3P4NOGy67ebwiYQJ0y3+c6whW52q19GIpGK7gRHj5NEWUUSd6t69LyM/mSsx+ubDqLqXu+uzqrnL9yDjLpnX2FxiyapkaGmD4siqgJtUwngEaCpqo/L5ZLJtFmBmc77dAVU271r9TDI+1/angZv+7QYYIvfC2c7DCd6QMzKA5DOzM9it230z+YvE3AuXys2RDZuRjmxODSTfdBXnXCTq6Pi43eEAd+YLFkhmxkQvwCELUVLZZQAZlhM6158k= openshift@dhcpserver"
+  clusters:
+  - clusterName: "sno-node-1"
+    clusterLabels:
+      sno: "true"
+      sites: "test-sno-ztp"
+      common: "4.9"
+    networkType: "OVNKubernetes"
+    clusterNetwork:
+      - cidr: 10.128.0.0/14
+        hostPrefix: 23
+    machineNetwork:
+      #- cidr: 10.19.110.0/24
+      - cidr: 192.168.19.0/25
+    serviceNetwork:
+      - 172.30.0.0/16
+    additionalNTPSources:
+      - clock.corp.redhat.com 
+      - pool.ntp.org
+    nodes:
+      #- hostName: "sno-node-1.cp4na.bos2.lab"
+      - hostName: "sno-node-1.cp4na.bos2.lab"
+        role: master
+        #bmcAddress: redfish-virtualmedia://10.19.111.6:9012/redfish/v1/Systems/1 
+        bmcAddress: 192.168.19.158
+        bmcCredentialsName:
+          #name: "ts-sno-03-bmc"
+          name: "sno-node-1-bmc"
+        #bootMACAddress: "0c:c4:7a:db:a9:92"
+        bootMACAddress: "b4:96:91:ec:52:44"
+        bootMode: "UEFI"
+        rootDeviceHints:
+          deviceName: /dev/sda
+        cpuset: "0-3,12-15"
+        nodeNetwork:
+          config:
+            interfaces:
+              #- name: eno1
+              - name: eno12399
+                type: ethernet
+                state: up
+                ipv4:
+                  enabled: true
+                  dhcp: true
+                ipv6:
+                  enabled: false
+          interfaces:
+            #- name: "eno1"
+            - name: "eno12399"
+              #macAddress: "0c:c4:7a:db:a9:92"
+              macAddress: "b4:96:91:ec:52:44"

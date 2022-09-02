@@ -1,0 +1,20 @@
+apiVersion: ran.openshift.io/v1
+kind: PolicyGenTemplate
+metadata:
+  name: "common-49"
+  namespace: "ztp-policies"
+spec:
+  bindingRules:
+    common: "4.9"
+  remediationAction: enforce
+  sourceFiles:
+    # PAO 
+    - fileName: PaoSubscription.yaml
+      policyName: "pao-sub-policy"
+      spec:
+        source: redhat-operators
+        channel: "4.9"
+    - fileName: PaoSubscriptionNS.yaml
+      policyName: "pao-sub-policy"
+    - fileName: PaoSubscriptionOperGroup.yaml
+      policyName: "pao-sub-policy"

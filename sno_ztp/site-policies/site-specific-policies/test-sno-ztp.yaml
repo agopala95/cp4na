@@ -1,0 +1,43 @@
+apiVersion: ran.openshift.io/v1
+kind: PolicyGenTemplate
+metadata:
+  name: "test-sno-ztp"
+  namespace: "ztp-policies"
+spec:
+  bindingRules:
+    sites: "test-sno-ztp"
+  mcp: "master"
+  remediationAction: enforce
+  sourceFiles: 
+    - fileName: PerformanceProfile.yaml
+      policyName: "perfprofile-policy"
+      metadata:
+        name: performance-sno
+        annotations:
+          kubeletconfig.experimental: |
+            {"topologyManagerScope": "pod",
+             "systemReserved": {"memory": "10.5Gi"}
+            }
+      spec:
+        additionalKernelArgs:
+        - "idle=poll"
+        - "rcupdate.rcu_normal_after_boot=0"
+        - "nohz_full=4-39,44-79"
+        globallyDisableIrqLoadBalancing: false
+        cpu:
+          isolated: "4-11,16-47"
+          reserved: "0-3,12-15"
+        hugepages:
+          defaultHugepagesSize: 1G
+          pages:
+          - count: 8
+            size: 1G
+            node: 0
+          - count: 0
+            size: 1G
+            node: 1
+        numa:
+          topologyPolicy: single-numa-node
+        realTimeKernel:
+          enabled: false
+
