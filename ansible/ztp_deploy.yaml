@@ -1,0 +1,16 @@
+---
+- name: OpenShift local storage operator install playbook
+  hosts: localhost
+  roles:
+    - role: ztp_deploy
+      vars:
+        ansible_work_dir: /tmp/ansible
+        file_dest_dir: /tmp/ztp_deploy_yaml_files  
+        github_token: <insert github account personal password token>
+        role_name: ztp_deploy
+        sno_node_name: <insert spoke cluster name>
+        ztp_github_repo: <insert github repo link>
+        ztp_deploy_files: <insert list of "to be deployed" ztp deploy files downloaded locally from the sno ztp github repo>
+
+
+

@@ -1,0 +1,79 @@
+---
+- name: Check if the "{{ file_dest_dir }}" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ file_dest_dir }}"
+    state: directory
+    mode: '0755'
+
+
+- name: Check if the "{{ ansible_work_dir }}/roles/{{ role_name }}/templates" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates"
+    state: directory
+    mode: '0755'
+
+
+- name: Download ArgoCD object patch YAML manifest file from github repo
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/ztp_deploy/argocd-openshift-gitops-patch.yaml
+    dest: "{{ file_dest_dir }}/argocd-openshift-gitops-patch.yaml"
+    mode: '0664'
+
+
+- name: Patch the ArgoCD object to use the Kustomize plugin when accessing the SiteConfig
+  kubernetes.core.k8s:
+    state: patched
+    src: "{{ file_dest_dir }}/argocd-openshift-gitops-patch.yaml"
+
+
+- name: Extract user pull secret from hub cluster for the spoke cluster/SNO
+  shell: oc extract -n openshift-config secret/pull-secret  --to=-
+  register: pull_secret
+
+
+- name: Download yaml manifest file template for SNO cluster namespace and pull secret object from github repo
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/ztp_deploy/spoke-sno-namespace-secret.yaml
+    dest: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/spoke-sno-namespace-secret.j2"
+    mode: '0664'
+
+
+- name: Creation of SNO cluster namespace and pull secret yaml manifest file from template
+  template:
+    src: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/spoke-sno-namespace-secret.j2"
+    dest: "{{ file_dest_dir }}/spoke-sno-namespace-secret.yaml"
+
+
+- name: Apply creation of SNO cluster namespace and pull secret
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ file_dest_dir }}/spoke-sno-namespace-secret.yaml"
+
+
+- name: Download yaml manifest file template for github account secret from github repo
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/ztp_deploy/github-secret.yaml
+    dest: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/github-secret.j2"
+    mode: '0664'
+
+
+- name: Create github account secret yaml manifest file from template
+  template:
+    src: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/github-secret.j2"
+    dest: "{{ file_dest_dir }}/github-secret.yaml"
+
+
+- name: Apply creation of github account secret
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ file_dest_dir }}/github-secret.yaml"
+
+
+
+- name: Deploy SNO ZTP through ArgoCD and RHACM SiteConfig
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', '{{ item }}') | from_yaml }}"
+  with_fileglob:
+    - "{{ ztp_deploy_files }}"
+
