@@ -1,4 +1,17 @@
 ---
+- name: check ACM operator csv status to ensure the operator has finished installed
+  kubernetes.core.k8s_info:
+    kind: ClusterServiceVersion
+    api_version: operators.coreos.com/v1alpha1
+    namespace: open-cluster-management
+    label_selectors:
+      - "operators.coreos.com/advanced-cluster-management.open-cluster-management"
+  register: acm_csv
+  until: acm_csv.resources[0].status.phase == "Succeeded"
+  retries: 20
+  delay: 15
+
+
 - name: Download creation of ACM multiclusterhub yaml manifest template file
   ansible.builtin.get_url:
    url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/acm/2.4/02-multiclusterhub-instance-acm.yaml
