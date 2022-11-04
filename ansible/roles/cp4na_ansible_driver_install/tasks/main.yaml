@@ -1,0 +1,50 @@
+---
+- name: Check if the "{{ file_dest_dir }}" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ file_dest_dir }}"
+    state: directory
+    mode: '0755'
+
+
+- name: Check if the "{{ ansible_work_dir }}/roles/{{ role_name }}/templates" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates"
+    state: directory
+    mode: '0755'
+
+
+
+- name: Download Ansible lifecycle driver tgz file
+  ansible.builtin.get_url:
+   url: "https://github.com/IBM/ansible-lifecycle-driver/releases/download/{{ ver }}/ansiblelifecycledriver-{{ ver }}.tgz"
+   dest: "{{ file_dest_dir }}/ansiblelifecycledriver-{{ ver }}.tgz"
+   mode: '0664'
+
+
+- name: Deploy the Ansible lifecycle driver using Helm
+  kubernetes.core.helm:
+    release_name: ansiblelifecycledriver
+    chart_ref: "{{ file_dest_dir }}/ansiblelifecycledriver-{{ ver }}.tgz"
+    release_namespace: "{{ cp4na_ns }}"
+    state: present
+    values: 
+      app.config.override.messaging.connection_address: "{{ kafka_component }}:{{ kafka_port }}"
+
+
+- name: Create a script to get the tls secret from the Ansible Lifecycle driver
+  copy:
+    dest: "{{ file_dest_dir }}/ald-tls.sh"
+    content: |
+      oc get secret ald-tls -o 'go-template={{ '{{' }}index .data "tls.crt"{{ '}}' }}' -n {{ cp4na_ns }} | base64 -d > {{ file_dest_dir }}/ald-tls.pem
+
+- name: Set Permissions for the script
+  file:
+    path: "{{ file_dest_dir }}/ald-tls.sh"
+    mode: 0777
+
+
+- name: Get the tls secret from the Ansible Lifecycle driver
+  ansible.builtin.shell: "{{ file_dest_dir }}/ald-tls.sh"
+  args:
+    executable: /bin/bash
+

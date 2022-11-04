@@ -1,0 +1,2 @@
+kafka_component: cp4na-o-events-kafka-bootstrap
+kafka_port: 9092

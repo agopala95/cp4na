@@ -1,0 +1,13 @@
+---
+- name: Ansible lifecycle driver for IBM CP4NA install playbook
+  hosts: localhost
+  roles:
+    - role: cp4na_ansible_driver_install
+      vars:
+        ansible_work_dir: /tmp/ansible
+        cp4na_ns: ibmcp4na
+        file_dest_dir: /tmp/siteplanner_yaml_files
+        kafka_component: iaf-system-kafka-bootstrap
+        kafka_port: 9092       
+        role_name: cp4na_operator_instance
+        ver: 3.5.1
