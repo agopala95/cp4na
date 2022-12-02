@@ -2,11 +2,30 @@
 - name: Download and apply kubernetes yaml manifests locally
   hosts: localhost
 
+  vars:
+    # value of 'stable' can be provided as well
+    oc_ver: 4.10.0-rc.8
+    argocdcli_ver_tag: v2.5.0
+
+  roles:
+    - role: helm_install
+
   tasks:
   - name: Install kubernetes Python module
-    pip:
-      name: kubernetes
+    ansible.builtin.pip:
+      name:
+        - kubernetes
+        - openshift
+        - PyYAML
 
-  - name: Install OpenShift Python module
-    pip:
-      name: openshift
+  - name: unarchive oc
+    ansible.builtin.unarchive:
+      src: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/{{ oc_ver }}/openshift-client-linux.tar.gz"
+      dest: /usr/local/bin/
+      remote_src: true
+
+  - name: Download and install ArgoCD CLI from binary file
+    ansible.builtin.get_url:
+      url: "https://github.com/argoproj/argo-cd/releases/download/{{ argocdcli_ver_tag }}/argocd-linux-amd64"
+      dest: /usr/local/bin/argocd
+      mode: 0555
