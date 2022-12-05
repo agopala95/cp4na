@@ -33,11 +33,11 @@
 
   - name: Check if the "{{ cp4na_repo_dest }}" directory exists and create it if it doesn't exist
     ansible.builtin.file:
-      path: "{{ file_dest_dir }}"
+      path: "{{ cp4na_repo_dest }}"
       state: directory
       mode: '0755'
 
-  - name: Git clone
+  - name: Git clone and download CP4NA automation assembly descriptors
     ansible.builtin.git:
       accept_hostkey: yes    
       repo: git@github.com:redhat-eets/cp4na_assembly_scripts.git
