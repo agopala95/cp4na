@@ -7,4 +7,5 @@
         cp4na_admin_api_key: <insert CP4NA GUI admin user's api key token>
         cp4na_ansible_driver_port:
         cp4na_ns: ibmcp4na
+        cp4na_repo_dest: /tmp/siteplanner_yaml_files
         file_dest_dir: /tmp/siteplanner_yaml_files 

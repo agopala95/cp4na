@@ -1,4 +1,10 @@
 ---
+- name: Check if the "{{ file_dest_dir }}" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ file_dest_dir }}"
+    state: directory
+    mode: '0755'
+
 - name: Install LMCTL Python module for IBM CP4NA
   ansible.builtin.pip:
     name: lmctl
@@ -25,3 +31,19 @@
     - lmctl resourcedriver add --type ansible --url https://ansible-lifecycle-driver:'{{ cp4na_ansible_driver_port }}' dev --certificate '{{ file_dest_dir }}'/ald-tls.pem
   environment:
     LMCONFIG: "{{ file_dest_dir }}/lmctl.yaml"  
+
+- name: Check if the "{{ cp4na_repo_dest }}" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ cp4na_repo_dest }}"
+    state: directory
+    mode: '0755'
+
+- name: Upload/push the CP4NA automation assembly descriptors into the CP4NA SitePlanner
+  ansible.builtin.shell: "lmctl project push dev"
+  args:
+    chdir: "{{ item }}"
+  with_items:
+    - "{{ cp4na_repo_dest }}/nodeconfig-master"
+    - "{{ cp4na_repo_dest }}/ocp-cluster-automation-develop"
+    - "{{ cp4na_repo_dest }}/prereqs-datamodel-master"
+    - "{{ cp4na_repo_dest }}/server-automation-master"
