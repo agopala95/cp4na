@@ -27,6 +27,13 @@
     mode: '0755'
 
 
+- name: Check if the "{{ file_dest_dir }}" directory exists and create it if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ file_dest_dir }}"
+    state: directory
+    mode: '0755'
+
+
 - name: Download AgentServiceConfig CR creation yaml manifest template file
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/acm_postdeploy/agent_service_config.yaml
@@ -40,8 +47,30 @@
     dest: "{{ file_dest_dir }}/agent_service_config.yaml"
 
 
-
 - name: Apply AgentServiceConfig CR creation creation yaml manifest file
   kubernetes.core.k8s:
     state: present
     src: "{{ file_dest_dir }}/agent_service_config.yaml"
+
+
+- name: Download yaml manifest file template for assisted deployment pull secret object from github repo for CP4NA
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/acm_postdeploy/assisted-deployment-pull-secret-acm.yaml
+    dest: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/assisted-deployment-pull-secret-acm.j2"
+    mode: '0664'
+
+- name: Extract user pull secret from hub cluster for the assisted deployment pull secret object
+  shell: oc extract -n openshift-config secret/pull-secret  --to=-
+  register: pull_secret
+
+
+- name: Creation of assisted deployment pull secret yaml manifest file from template
+  template:
+    src: "{{ ansible_work_dir }}/roles/{{ role_name }}/templates/assisted-deployment-pull-secret-acm.j2"
+    dest: "{{ file_dest_dir }}/assisted-deployment-pull-secret-acm.yaml"
+
+
+- name: Apply creation of assisted deployment pull secret
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ file_dest_dir }}/assisted-deployment-pull-secret-acm.yaml"
