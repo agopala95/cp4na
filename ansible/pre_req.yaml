@@ -7,6 +7,8 @@
     oc_ver: 4.10.0-rc.8
     argocdcli_ver_tag: v2.5.0
     cp4na_repo_dest: /tmp/siteplanner_yaml_files
+    ztp_github_repo: <insert github repo link here>
+    github_token: <insert github personal access token here>
 
   roles:
     - role: helm_install
@@ -44,3 +46,21 @@
       dest: "{{ cp4na_repo_dest }}"
       key_file: ~/.ssh/id_rsa
       force: yes
+
+  - name: Download yaml manifest file template for github account secret from github repo
+    ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/redhat-eets/cp4na/main/ztp_deploy/github-secret.yaml
+      dest: "{{ cp4na_repo_dest }}/templates/github-secret.j2"
+      mode: '0664'
+
+
+  - name: Create github account secret yaml manifest file from template
+    template:
+      src: "{{ cp4na_repo_dest }}/templates/github-secret.j2"
+      dest: "{{ cp4na_repo_dest }}/github-secret.yaml"
+
+
+  - name: Apply creation of github account secret and connect to repo in ArgoCD
+    kubernetes.core.k8s:
+      state: present
+      src: "{{ cp4na_repo_dest }}/github-secret.yaml"
