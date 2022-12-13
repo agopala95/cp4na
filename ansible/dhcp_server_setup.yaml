@@ -17,8 +17,8 @@
       vars:
         image_name: 4km3/dnsmasq
         image_tag: 2.86-r0
-        registry_username:
-        registry_password:
+        registry_username: <insert username value>
+        registry_password: <insert password value>
         registry_name: docker.io
         registry_auth_file: /tmp/auth.json
     - role: ip_address_assign

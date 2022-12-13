@@ -17,7 +17,8 @@
       vars:
         ai_setup_dir: /tmp/ai_onprem_yaml_files/
         ai_file_tag: v2.5.0
-        svc_base_url: 
+        # Uncomment the following and include value to overwrite default value of '127.0.0.1'
+        #svc_base_url: 
         svc_name: assisted-installer
         system_path: /etc/systemd/system/
     - role: delete_file
