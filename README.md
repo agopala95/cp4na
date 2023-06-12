@@ -1,243 +1,288 @@
-# cp4na
+# DEPLOY SNO USING IBM CP4NA + AUTOMATION SCRIPTS STEPS
 
-Repo for OCP/ODF/CP4NA install associated artifacts
+1. Firstly, ensure that the RHACM and OpenShift GitOps/ArgoCD operators are installed before deploying the CP4NA operator [this “strict order” requirement might have depreciated].\
+ \
+ a. Ensure that the RHACM operator as well as the multiclusterhub instance are installed and enable/deploy the instance’s corresponding assisted installer service ([Central Infrastructure Management Service] \
+ [https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.4/html/clusters/managing-your-clusters#enable-cim](CIM)  \
+ \
+Ansible files to operate:- \
+i. RHACM operator - \
+ [https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_operator_install.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_operator_install.yaml) \
+ii. RHACM multiclusterhub instance - \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_multiclusterhub.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_multiclusterhub.yaml) \
+iii. CIM - \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_postinstall.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_postinstall.yaml) \
+\
+b. Ensure that the OpenShift GitOps (ArgoCD) operator is installed. \
+ \
+Ansible files to operate:- \
+\
+OpenShift GitOps operator - \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/openshift_gitops_install.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/openshift_gitops_install.yaml)
+2. Next, install the IBM CP4NA operator, followed by its instance while ensuring that the SitePlanner component is enabled as well. \
+\
+Ansible files to operate:- \
+i. Install CP4NA operator - \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_operator_install.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_operator_install.yaml) \
+ii. Deploy CP4NA instance with SitePlanner component - \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_instance.yaml](https://github.com/redhat-eets/cp4na/ii.lob/main/ansible/cp4na_instance.yaml) \
+c. Change the Install Plan approval method of the CP4NA instance to "Manual" - \
+<https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_subscription_edit.yaml>
+\
+\
+Note:- \
+Please add the following routes to the file /etc/hosts while mapping them to the hub cluster’s ingress VIP: \
+\
+a. oc get route cp4na-o-ishtar -n ibmcp4na -o jsonpath='{.spec.host}' - CP4NA Ishtar Route \
+b. oc get orchestration tnco -o 'jsonpath={..status.uiendpoints.orchestration}' -n ibmcp4na - CP4NA Instance UI Route \
+c. cp-console.apps.\<Hub cluster name>.\<FQDN>
 
-## Workflow for installing a SNO cluster using IBM CP4NA automation scripts
+3. Install the necessary prerequisites needed for the CP4NA’s siteplanner component to deploy OCP SNO with RHACM and ArgoCD in conjunction. The following installations are taken care of by the ansible playbook linked below:- 
 
-## DEPLOY SNO USING IBM CP4NA + AUTOMATION SCRIPTS STEPS
+- Python packages through pip [Kubernetes, OpenShift, PyYAML]
+- Helm
+- oc client binary
+- ArgoCD cli  \
+\
+Ansible files to operate:- \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/pre_req.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/pre_req.yaml)
 
-1. Install the RHACM operator and multiclusterhub instance is installed and enable/deploy the instance’s corresponding assisted installer service Central Infrastructure Management Service(CIM).
-__Ansible files to operate:__
-	__RHACM operator__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_operator_install.yaml
-__RHACM multiclusterhub instance__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_multiclusterhub.yaml
-__CIM__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_postinstall.yaml
+4. Install the ansible lifecycle driver for CP4NA operator with the help of helm and onboard it as per the link here manually or use the Ansible playbook given below- [https://github.com/redhat-eets/cp4nadoc/blob/master/prereqs/ansibleDriverDeployment.md](https://github.com/redhat-eets/cp4nadoc/blob/master/prereqs/ansibleDriverDeployment.md) \
+\
+Reference - \
+<https://github.com/IBM/ansible-lifecycle-driver/blob/master/docs/install_with_helm.md> \
+\
+Ansible files to operate:- \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_ansible_driver_install.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_ansible_driver_install.yaml) \
+\
+To do it manually:- \
+wget <https://github.com/IBM/ansible-lifecycle-driver/releases/download/>\<version>/ansiblelifecycledriver-\<version\>.tgz \
+\
+Version - 3.5.1 \
+\
+wget <https://github.com/IBM/ansible-lifecycle-driver/releases/download/3.5.1/ansiblelifecycledriver-3.5.1.tgz> \
+\
+Change to the CP4NA namespace
 
-2. Install the OpenShift GitOps (ArgoCD) operator
-__Ansible files to operate:__
-__OpenShift GitOps operator__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/openshift_gitops_install.yaml
+    ```bash
+    oc project ibmcp4na 
+    ```
 
-3. Install the IBM CP4NA operator, followed by its instance while ensuring that the SitePlanner component is enabled as well.
- __Ansible files to operate:__
-__Install CP4NA operator__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_operator_install.yaml
-__Deploy CP4NA instance with SitePlanner component.__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_instance.yaml
-__Change the Install Plan approval method of the CP4NA instance to “Manual”__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_subscription_edit.yaml
+    kafka host value must be set as follows, in values.yaml file of the helm package, depending on the CP4NA versions: \
+\
+For pre CP4NA v2.3, the kafka host must be iaf-system-kafka-bootstrap \
+\
+For CP4NA v2.3/v2.3+, the kafka host must be cp4na-o-events-kafka-bootstrap \
+\
+Version - 3.5.1
 
-	__Note:__ Add the following routes to the file /etc/hosts while mapping them to the hub cluster’s ingress VIP:
-	__CP4NA Ishtar Route__
-	```sh
-	oc get route cp4na-o-ishtar -n ibmcp4na -o jsonpath='{.spec.host}'
-	```
-	__CP4NA Instance UI Route__
-	```sh
-	oc get orchestration tnco -o 'jsonpath={..status.uiendpoints.orchestration}' -n ibmcp4na
-	```
-4. Install the necessary prerequisites needed for the CP4NA’s siteplanner component to deploy OCP SNO with RHACM and ArgoCD in conjunction. The following installations are taken care of by the ansible playbook linked below:
-	- Python packages through pip [Kubernetes, OpenShift, PyYAML]
-	- Helm
-	```
-	oc client binary
-	```
-	- ArgoCD cli
+    ```bash
+    helm install ansiblelifecycledriver-3.5.1.tgz --generate-name --setapp.config.override.messaging.connection_address=iaf-system-kafka-bootstrap:9092
+    ```
 
-	__Ansible files to operate:__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/pre_req.yaml
+    Extract the TLS certificate for the driver to onboard ansible driver as resource driver to CP4NA
 
-5. Install the ansible lifecycle driver for CP4NA operator with the help of helm and onboard it as per the link here manually or use the Ansible playbook given below
+    ```bash
+    oc get secret ald-tls -o 'go-template={{index .data "tls.crt"}}' | base64 -d > ald-tls.pem
+    ```
 
-	https://github.com/redhat-eets/cp4nadoc/blob/master/prereqs/ansibleDriverDeployment.md
-Reference - https://github.com/IBM/ansible-lifecycle-driver/blob/master/docs/install_with_helm.md
+    The ansible lifecycle driver pod should be visible in the namespace where CP4NA operator is installed.
+      5. Get the password for the default “admin” user of the CP4NA GUI by using the following command and then set access roles for the admin user in the GUI by first logging in with the obtained credentials as shown in the screenshots below.
 
-	__Ansible files to operate:__
-https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_ansible_driver_install.yaml
+    a. Get admin password
 
-	__To do it manually:__
-wget https://github.com/IBM/ansible-lifecycle-driver/releases/download/<version>/ansiblelifecycledriver-<version>.tgz
+    ```bash
+    oc get secret platform-auth-idp-credentials -n ibm-common-services -o yaml
+    echo TzUySlV2bEl6Unk3U3JudUgzU3VrbXFnUHRJb0VNNEI= | base64
+    ```
 
-	Version - 3.5.1
+    b. Set access roles through the CP4NA GUI \
+    \
+    Command to get the CP4NA GUI url link -
 
-	wget https://github.com/IBM/ansible-lifecycle-driver/releases/download/3.5.1/ansiblelifecycledriver-3.5.1.tgz
+    ```bash
+    oc get routes cpd -o jsonpath='{.spec.host}' -n ibmcp4na
+    ```
 
-	Change to the CP4NA namespace
-```
-oc project ibmcp4na
-```
-kafka host value must be set as follows, in values.yaml file of the helm package, depending on the CP4NA versions:
+    ![alt_text](Reference_Images/cp4na-access-ctl-1.png "image_tooltip")
+    ![alt_text](Reference_Images/cp4na-access-ctl-2.png "image_tooltip")
+    ![alt_text](Reference_Images/cp4na-admin-4.png "image_tooltip")
+    ![alt_text](Reference_Images/cp4na-assign-3.png "image_tooltip")
 
-	For pre CP4NA v2.3, the kafka host must be iaf-system-kafka-bootstrap
-For CP4NA v2.3/v2.3+, the kafka host must be cp4na-o-events-kafka-bootstrap
+    Automation Administrator, SLMAdmin and SPAdmin are the roles to be chosen.
 
-	Version - 3.5.1
-```
-	helm install ansiblelifecycledriver-3.5.1.tgz --generate-name --setapp.config.override.messaging.connection_address=iaf-system-kafka-bootstrap:9092
-```
-	Extract the TLS certificate for the driver to onboard ansible driver as resource driver to CP4NA
-```
-oc get secret ald-tls -o 'go-template={{index .data "tls.crt"}}' | base64 -d > ald-tls.pem
-```
+6. Next, generate and take note of the API key for the user “admin” as seen in the screenshots below
 
-	The ansible lifecycle driver pod should be visible in the namespace where CP4NA operator is installed.
+    ![alt_text](Reference_Images/cp4na-welcome-5.png "image_tooltip")
+    ![alt_text](Reference_Images/cp4na-admin-4a.png "image_tooltip")
 
-6. Get the password for the default “admin” user of the CP4NA GUI by using the following command and then set access roles for the admin user in the GUI by first logging in with the obtained credentials as shown in the screenshots below.
-
-	Get admin password
-```
-oc get secret platform-auth-idp-credentials -n ibm-common-services -o yaml echo TzUySlV2bEl6Unk3U3JudUgzU3VrbXFnUHRJb0VNNEI= | base64 -d
-```
-	Set access roles through the CP4NA GUI
-
-	Command to get the CP4NA GUI url link
-```
-oc get routes cpd -o jsonpath='{.spec.host}' -n ibmcp4na
-```
-# INSERT IMAGES HERE
-
-	Automation Administrator, SLMAdmin and SPAdmin are the roles to be chosen.
-7. Next, generate and take note of the API key for the user “admin” as seen in the screenshots below.
-# INSERT IMAGES HERE
-
-8. Install the tool lmctl to onboard the Ansible Lifecycle Driver to the CP4NA operator and download the assembly descriptors that contain automation scripts for CP4NA to deploy SNO.
-
-	***Ansible files to operate:***
-https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_lmctl_deploy.yaml
-
-	To do it manually:-
+7. Install the tool lmctl to onboard the Ansible Lifecycle Driver to the CP4NA operator and download the assembly descriptors that contain automation scripts for CP4NA to deploy SNO. \
+ \
+Ansible files to operate:- \
+[https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_lmctl_deploy.yaml](https://github.com/redhat-eets/cp4na/blob/main/ansible/cp4na_lmctl_deploy.yaml) \
+\
+To do it manually: \
 Create a config yaml file for lmctl and make it point to the CP4NA setup and export the path.
-```
-[openshift@dhcpserver ~]$ vi lmctl.yaml
-```
-```yaml
-active_environment: dev
-environments:
-  dev:
-    tnco:
-      address: https://cp4na-o-ishtar-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab
-      api_key: IWlzXggfPdHL495uo25kqeCAZlODnjdFcbI0JROW
-      auth_address: https://cpd-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab/icp4d-api/v1/authorize
-      auth_mode: zen
-      secure: true
-      username: admin
-```
-The api_key and username were obtained from the previous step.
-The address can be obtained from the following command:
-```
-oc get route cp4na-o-ishtar -o jsonpath='{.spec.host}'
-```
-```yaml
-auth_address: CP4NA SiteplannerGUI url + icp4d-api/v1/authorize
-```
-Next, export the file path as LMCONFIG
-```sh
-export LMCONFIG=/home/openshift/lmctl.yaml
-```
-Install lmctl using the link - https://github.com/IBM/lmctl/blob/master/docs/getting-started.md
-```sh
-python3 -m pip install lmctl
-```
-Add resource driver through lmctl
-```sh
-	lmctl resourcedriver add --type ansible --url https://ansible-lifecycle-driver:8293 dev --certificate ald-tls.pem
-```
-	The descriptors of interest are : ocp-cluster-automation-develop, server-automation-master, prereqs-datamodel-master, nodeconfig-master
 
-	__Note:__ Files having commented out lines or appended lines
+    ```sh
+    [openshift@dhcpserver ~]$ vi lmctl.yaml 
 
-	ocp-cluster-automation-develop/Contains/cluster/Contains/predeploy/Lifecycle/ansible/scripts/configure_oc.yml
+    active_environment: dev
+    environments:
+    dev:
+        tnco:
+        address: https://cp4na-o-ishtar-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab
+        api_key: IWlzXggfPdHL495uo25kqeCAZlODnjdFcbI0JROW
+        auth_address: https://cpd-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab/icp4d-api/v1/authorize
+        auth_mode: zen
+        secure: true
+        username: admin
+    ```
 
-	prereqs-datamodel-master/Contains/ddi/Contains/deploy/Lifecycle/ansible/scripts/Install.yaml
-```yaml
-   vars:
-     log_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H-%M-%S') }}"
-    ansible_become_pass: "{{  ddi.config_context.password }}"     
-```
- add this line
-```yaml
-sno_node: {}
-name: "sno"
-```
-* Git clone the repos as seen in the link
-https://github.com/redhat-eets/cp4na_assembly_scripts
-* Go to each repo folder and run the command:
-```sh
-lmctl project push dev
-```
-Example
-```sh
-[openshift@dhcpserver ~]$ cd Downloads/ocp-cluster-automation-develop/
-[openshift@dhcpserver ocp-cluster-automation-develop]$ lmctl project push dev
-```
-9. In this step, the SitePlanner needs data to be collected and filled before SNO deployment. The data will include site information like node, provisioner, jumphost, dns-dhcp details, etc.
+    api_key and username were obtained from the previous step.
+    address can be obtained from the following command:-
 
-	__Note:__
-Please ensure the following steps are done before putting data into the SitePlanner
-	* Create assisted-deployment-pull-secret in open-cluster-management namespace (This will be created as part of executing the playbook at https://github.com/redhat-eets/cp4na/blob/main/ansible acm_postinstall.yaml)
-	* Add ZTP github repo in argocd
-	* Add host entries in /etc/hosts
+    ```bash
+    oc get route cp4na-o-ishtar -o jsonpath='{.spec.host}'
 
-	To do it manually:
-Follow steps from the official document to model the siteplanner with SNO site data and management cluster data and make sure Site device has a build option.
+    auth_address: CP4NA SiteplannerGUI url + icp4d-api/v1/authorize 
+    ```
 
-	After generating API key for “admin” user in step 6, use the following command listed here
-	https://www.ibm.com/docs/en/cloud-paks/cp-network-auto/2.2.x?topic=apis-authenticating-rest-api-requests
-	to get an access token which is used to access the APIs.
-```sh
-curl -s -k -X POST https://cpd-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab/icp4d-api/v1/authorize -H 'Content-Type: application/json' -d '{ "username": "admin", "api_key": "IWlzXggfPdHL495uo25kqeCAZlODnjdFcbI0JROW"  }' | python -c 'import sys, json; print json.load(sys.stdin)["access_token"]'
-```
-Data modeling order for site planner:
-		* Create Manufacturer [Dell]
-		* Create Device Type [PowerEdge 650]
-		* Create Device Roles  [DHCP-DNS, Git, Provisioner, OCP-Node servers]
-		* Create Site [Management, Billerica]
-		* Create Devices [DHCP-DNS, Git, Provisioner, OCP-Node servers]
-		* Create Config Context [Image Registry, Management Cluster Config, SNO cluster Config]
-		* Create Interfaces for ocp-node [eno12399, ipmi_interface]
-		* Create Service for ipmi_interface
-		* Create Automation Contexts
+    Next, export the file path as LMCONFIG 
 
-		To do it through SitePlanner REST APIs:-
-On gaining access to the REST API collection compiled by Postman client, the following REST API calls can be used to do data modeling.
+    ```bash
+    export LMCONFIG=/home/openshift/lmctl.yaml 
+    ```
 
-	REST API ACCESS
-		* Using the API key generated for the admin user in step 6, the user can run the GenerateAccessToken API call to get an access token used to authorize the API calls being made to model data into the SitePlanner.
+    Install lmctl using the link - \
+    [https://github.com/IBM/lmctl/blob/master/docs/getting-started.md](https://github.com/IBM/lmctl/blob/master/docs/getting-started.md) 
 
-		INSERT IMAGE HERE
-		*Once the access token is obtained, the first step is to create a manufacturer (the BMC type of the lab machine intended to be used for SNO) and this can be done by executing the CreateManufacturer API call.
+    ```bash
+    python3 -m pip install lmctl 
+    ```
 
-		* In the request body, the name has to be a recognized predefined value from the set - Dell, SuperMicro, HPE, Lenovo.
-		* The slug value can be the same as the name value too as it is virtually a shortened name or nickname (as is with the case with the following API calls).
-		* Next, the user can create the device type which is the model of the manufacturer being used. This can be done through the CreateDeviceType API request.
+    Add resource driver through lmctl 
 
-		Body:- (Example is that of Dell and its sample model)
-```yaml
-{
-  "manufacturer": { "name": "Dell", "slug": "dell"},
-  "model": "PowerEdge R650",
-  "slug": "poweredge-r650",
-  "u_height": 1,
-  "is_full_depth": true
-}
-```
-		* The user can now proceed to label the device roles at play for each server/lab machine that’s involved (which can include DNS/DHCP, provisioner, GIT server, SNO OCP node). This can be done by executing multiple API calls through the CreateDeviceRole request for each device role.
-		* The above example shows an execution to create a device role for the provisioning host or server.
-		* The color field has a RGB value that sets the color associated with the device role for easier viewing in the UI. The vm_role field can be set to false.
+    ```bash
+    lmctl resourcedriver add --type ansible --url https://ansible-lifecycle-driver:8293 dev --certificate ald-tls.pem 
+    ```
 
-		__Note:__ Use hyphens instead of underscore for name fields in both device roles and devices
+    The descriptors of interest are : **ocp-cluster-automation-develop**, **server-automation-master**, **prereqs-datamodel-master**, **nodeconfig-master** \
+    \
+    **Note:-** \
+    Files having commented out lines or appended lines- 
 
-		* For the provisioner role, the name field is provisioner.
-		* Similarly, device roles can be set for the DNS/DHCP server where the name field in particular has to be DHCP DNS Server.
-		* For the git server role, it is Git Server.
-		* For the SNO ocp node role, it can be ocp-node.
+    ```bash
+    ocp-cluster-automation-develop/Contains/cluster/Contains/predeploy/Lifecycle/ansible/scripts/configure_oc.yml
 
-		* In this step, the sites can be created under which the devices to be created as part of step f are placed into. For each site, the user can make an API request through CreateSite.
-		* Two sites have to created - Management (Site which contains the DHCP/DNS device, Git server device, provisioner device), Billerica (Site which contains the SNO ocp node device)
+    prereqs-datamodel-master/Contains/ddi/Contains/deploy/Lifecycle/ansible/scripts/Install.yaml
+    ```
 
-		* Body for Management site:
+    ```yaml
+    vars:
+        log_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H-%M-%S') }}"
+    +    ansible_become_pass: "{{  ddi.config_context.password }}"     - add this line
+        sno_node: {}
+        name: "sno"
+    ```
+
+    i) Git clone the repos as seen in the link - \
+    <https://github.com/redhat-eets/cp4na_assembly_scripts>
+
+    ii) Go to each repo folder and run the command:
+    lmctl project push dev
+
+    Ex:-
+
+    ```bash
+    [openshift@dhcpserver ~]$ cd Downloads/ocp-cluster-automation-develop/
+    [openshift@dhcpserver ocp-cluster-automation-develop]$ lmctl project push dev
+    ```
+
+1. In this step, the SitePlanner needs data to be collected and filled before SNO deployment. The data will include site information like node, provisioner, jumphost, dns-dhcp details, etc. \
+\
+**Note:-** \
+Please ensure the following steps are done before putting data into the SitePlanner \
+\- Create assisted-deployment-pull-secret in open-cluster-management namespace (This will be created as part of executing the playbook at <https://github.com/redhat-eets/cp4na/blob/main/ansible/acm_postinstall.yaml)> \
+– Add ZTP github repo in argocd \
+– Add host entries in /etc/hosts \
+\
+To do it manually:- \
+Follow steps from the official document to model the siteplanner with SNO site data and management cluster data and make sure Site device has a build option. \
+\
+    After generating API key for "admin" user in step 6, use the following command listed here - \
+    <https://www.ibm.com/docs/en/cloud-paks/cp-network-auto/2.2.x?topic=apis-authenticating-rest-api-requests> to get an access token which is used to access the APIs.
+
+    ```bash
+    curl -s -k -X POST https://cpd-ibmcp4na.apps.ocphub4ztp.cp4na.bos2.lab/icp4d-api/v1/authorize -H 'Content-Type: application/json' -d '{ "username": "admin", "api_key": "IWlzXggfPdHL495uo25kqeCAZlODnjdFcbI0JROW"  }' | python -c 'import sys, json; print json.load(sys.stdin)["access_token"]'
+    ```
+
+    Data modeling order for site planner:
+
+    - Create Manufacturer [Dell]
+    - Create Device Type [PowerEdge 650]
+    - Create Device Roles  [DHCP-DNS, Git, Provisioner, OCP-Node servers]
+    - Create Site [Management, Billerica]
+    - Create Devices [DHCP-DNS, Git, Provisioner, OCP-Node servers]
+    - Create Config Context [Image Registry, Management Cluster Config, SNO cluster Config]
+    - Create Interfaces for ocp-node [eno12399, ipmi_interface]
+    - Create Service for ipmi_interface
+    - Create Automation Contexts
+
+    To do it through SitePlanner REST APIs:- \
+    On gaining access to the REST API collection compiled by Postman client, the following REST API calls can be used to do data modeling. \
+    \
+    a. REST API ACCESS \
+    Using the API key generated for the admin user in step 6, the user can run the **GenerateAccessToken** API call to get an access token used to authorize the API calls being made to model data into the SitePlanner.
+
+    ![alt_text](Reference_Images/cp4na-gpt-6.png "image_tooltip")
+
+    b. Once the access token is obtained, the first step is to create a manufacturer (the BMC type of the lab machine intended to be used for SNO) and this can be done by executing the **CreateManufacturer** API call.
+
+    ![alt_text](Reference_Images/cp4na-cm-super-7.png "image_tooltip")
+
+    In the request body, the name has to be a recognized predefined value from the set - Dell, SuperMicro, HPE, Lenovo. \
+    The **slug value can be the same as the name value** too as it is virtually a shortened name or nickname (as is with the case with the following API calls).
+
+    c. Next, the user can create the device type which is the model of the manufacturer being used. This can be done through the **CreateDeviceType** API request.
+
+    ![alt_text](Reference_Images/cp4na-cdt-super-8a.png "image_tooltip")
+
+    Body:- (Example is that of Dell and its sample model)
+
+    ```yaml
+    {
+    "manufacturer": { "name": "Dell", "slug": "dell"},
+    "model": "PowerEdge R650",
+    "slug": "poweredge-r650",
+    "u_height": 1,
+    "is_full_depth": true
+    }
+    ```
+
+    d. The user can now proceed to label the device roles at play for each server/lab machine that's involved (which can include DNS/DHCP, provisioner, GIT server, SNO OCP node). This can be done by executing multiple API calls through the **CreateDeviceRole** request for each device role.
+
+    ![alt_text](Reference_Images/cp4na-cpr-prov-8.png "image_tooltip")
+
+    The above example shows an execution to create a device role for the provisioning host or server.  \
+    The color field has a RGB value that sets the color associated with the device role for easier viewing in the UI. The vm_role field can be set to false. \
+    \
+    **Note:-** \
+    Use hyphens instead of underscore for name fields in both device roles and devices \
+    \
+    i) For the provisioner role, the name field is **provisioner**. \
+    ii) Similarly, device roles can be set for the DNS/DHCP server where the name field in particular has to be **DHCP DNS Server**. \
+    iii) For the git server role, it is **Git Server**
+
+    iv) For the SNO ocp node role, it can be ocp-node. \
+    \
+    e. In this step, the sites can be created under which the devices to be created as part of step f are placed into. For each site, the user can make an API request through CreateSite.
+    Two sites have to created - **Management** (Site which contains the DHCP/DNS device, Git server device, provisioner device), **Billerica** (Site which contains the SNO ocp node device)
+
+![alt_text](Reference_Images/cp4na-westford.png "image_tooltip")
+
+Body for Management site:
+
 ```yaml
 {
    "name": "Management",
@@ -247,7 +292,7 @@ On gaining access to the REST API collection compiled by Postman client, the fol
    "tenant": null,
    "facility": "",
    "asn": null,
-   "time_zone": "US/Eastern",   [not accepting null]
+   "time_zone": "US/Eastern", [not accepting null]
    "description": "",
    "physical_address": "",
    "shipping_address": "",
@@ -261,9 +306,12 @@ On gaining access to the REST API collection compiled by Postman client, the fol
    "custom_fields": {}
 }
 ```
-		* Body for Billerica site:
+
+Body for Billerica site:
+
 ```yaml
-{
+
+{ 
    "name": "Billerica",
    "slug": "billerica",
    "status": "active",
@@ -290,7 +338,9 @@ On gaining access to the REST API collection compiled by Postman client, the fol
    "custom_fields": {}
 }
 ```
-		* Body for Showcase site:
+
+Body for Showcase site:
+
 ```yaml
 {
    "name": "Showcase",
@@ -316,13 +366,21 @@ On gaining access to the REST API collection compiled by Postman client, the fol
    "custom_fields": {}
 }
 ```
-		* Once the device roles are created, the actual devices with these roles can be now created. This can be done by using the CreateDevice API request each time a device has to be created.
-		* The devices to be created with their respective name field values are - DNS DHCP Server, Git Server, provisioner and ocp-node.
-__Note:__ In the request body, the device is linked to a site created earlier through the site field.
-Management site - DNS DHCP Server, Git Server, provisioner
-		* Billerica site - ocp-node
 
-		Body for DNS DHCP Server:
+f. Once the device roles are created, the actual devices with these roles can be now created. This can be done by using the **CreateDevice** API request each time a device has to be created.
+
+![alt_text](Reference_Images/cp4na-cd-prov-10a.png "image_tooltip")
+
+The devices to be created with their respective name field values are - **DNS DHCP Server**, **Git Server**, **provisioner** and **ocp-node**.
+
+**Note:-** \
+In the request body, the device is linked to a site created earlier through the site field. \
+\
+Management site - **DNS DHCP Server**, **Git Server**, **provisioner** \
+Billerica site - **ocp-node** \
+\
+i) Body for DNS DHCP Server: 
+
 ```yaml
 {
  "name": "DNS DHCP Server",
@@ -344,9 +402,9 @@ Management site - DNS DHCP Server, Git Server, provisioner
        "user": "openshift",
        "dns_file": "/etc/hosts",
        "password": "openshift",
-       "dhcp_file": "/etc/dnsmasq/dnsmasq.conf"
+       "dhcp_file": "/etc/dnsmasq/dnsmasq.conf"     
  },
-     "config_context": {
+     "config_context":
        "host": "192.168.19.11",
        "user": "openshift",
        "dns_file": "/etc/hosts",
@@ -355,17 +413,19 @@ Management site - DNS DHCP Server, Git Server, provisioner
    }
 }
 ```
-The user can note that the body has the config context field with key/value fields within it which includes the values as follows:
-```
-host: IP address of the server hosting the DNS/DHCP service
-user: server login username
-dns_file: file to be referred to resolve hostnames
-password: server login password
-dhcp_file: file to be referred to check the DHCP configuration
-```
-The local_context_data can contain the same fields as that of the config_context field
 
-		Body for Git Server:
+The user can note that the body has the config context field with key/value fields within it which includes the values as follows:
+
+- host: IP address of the server hosting the DNS/DHCP service 
+- user: server login username
+- dns_file: file to be referred to resolve hostnames
+- password: server login password
+- dhcp_file: file to be referred to check the DHCP configuration
+
+The local_context_data can contain the same fields as that of the config_context field.
+
+ii) Body for Git Server:
+
 ```yaml
 {
  "name": "Git Server",
@@ -396,16 +456,18 @@ The local_context_data can contain the same fields as that of the config_context
    }
 }
 ```
+
 The user can note that the body has the config context field with key/value fields within it which includes the values as follows:
-```yaml
-git_repo: HTTPS URL link to the github repo hosting the SNO OCP SiteConfig and related manifest files
-git_token: Github account personal access token
-git_branch: Branch of the repo to be linked
-git_username: Github account username
-```
+
+- git_repo: HTTPS URL link to the github repo hosting the SNO OCP SiteConfig and related manifest files
+- git_token: Github account personal access token
+- git_branch: Branch of the repo to be linked
+- git_username: Github account username
+
 The local_context_data can contain the same fields as that of the config_context field.
 
-		Body for provisioner:
+iii) Body for provisioner:
+
 ```yaml
 {
  "name": "provisioner",
@@ -434,17 +496,20 @@ The local_context_data can contain the same fields as that of the config_context
    }
 }
 ```
-	The user can note that the body has the config context field with key/value fields within it which includes the values as follows:
-```yaml
-host: IP address of the server acting as the provisioning host.
-user: server login username
-password: server login password
-```
+
+The user can note that the body has the config context field with key/value fields within it which includes the values as follows: 
+
+- host: IP address of the server acting as the provisioning host. 
+- user: server login username
+- password: server login password
+
 The local_context_data can contain the same fields as that of the config_context field.
 
-		Body for ocp-node:
+iv) Body for ocp-node:
+
 ```yaml
 {
+
  "name": "ocp-node",
  "device_type": {
      "manufacturer":{
@@ -475,28 +540,31 @@ The local_context_data can contain the same fields as that of the config_context
    }
 }
 ```
+
 The user can note that the body has the config context field with key/value fields within it which includes the values as follows:
-```yaml
-ipmi_userid: BMC/IPMI login username
-ipmi_password: BMC/IPMI login password
-```
+
+- ipmi_userid: BMC/IPMI login username
+- ipmi_password: BMC/IPMI login password
+
 The local_context_data can contain the same fields as that of the config_context field.
 
-		Configuration data needed for the SNO node like the hub/management cluster data and Image registry data can be compiled into a “config context”.
+g. Configuration data needed for the SNO node like the hub/management cluster data and Image registry data can be compiled into a "config context".
+Three config contexts are created for the use case here: [**Image Registry Configuration**, **Management Cluster Configuration**, **SNO cluster properties**]
+The API requests for each of these config contexts can be made using the CreateConfigContext request.
 
-		Three config contexts are created for the use case here: [Image Registry Configuration, Management Cluster Configuration, SNO cluster properties]
+![alt_text](Reference_Images/cp4na-ccc-sno-11.png "image_tooltip")
 
-		The API requests for each of these config contexts can be made using the CreateConfigContext request.
+**Note:-** \
+The Billerica site has to be linked to each of the config contexts. This can be done by mapping the Site ID generated as part of the CreateSite API request.
 
-		__Note:__ The Billerica site has to be linked to each of the config contexts. This can be done by mapping the Site ID generated as part of the CreateSite API request.
+i) Body for Image Registry Configuration
 
-		Body for Image Registry Configuration
 ```yaml
 {
  "name": "Image Registry Configuration",
  "weight": 1000,
  "description": "",
- "is_active": true,
+ "is_active": **true**,
   "sites": [ 6 ],
  "data": {
        "management_cluster_config": {
@@ -527,17 +595,19 @@ The local_context_data can contain the same fields as that of the config_context
                    }
                }
            }
-       }
+       }     
  }
 }
 ```
-Body for Management Cluster Configuration
+
+ii) Body for Management Cluster Configuration
+
 ```yaml
 {
  "name": "Management Cluster Configuration",
  "weight": 1000,
  "description": "",
- "is_active": true,
+ "is_active": **true**,
   "sites": [ 6 ],
  "data": {
        "management_cluster_config": {
@@ -573,13 +643,15 @@ Body for Management Cluster Configuration
  }
 }
 ```
-Body for SNO cluster properties
+
+iii) Body for SNO cluster properties
+
 ```yaml
 {
  "name": "SNO cluster properties",
  "weight": 1000,
  "description": "",
- "is_active": true,
+ "is_active": **true**,
   "sites": [ 6 ],
  "data": {
        "cpuset": "0-3,12-15",
@@ -588,17 +660,22 @@ Body for SNO cluster properties
            "cluster_type": "sno",
            "cluster_domain": "cp4na.bos2.lab",
            "cluster_version": 4.9,
-           "airgap_environment": false
+           "airgap_environment": **false**
        },
        "ssh_public_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDsCHghGt5v9XtXgKSeiIUurcUV5VIIv8TTYwow3RIuGJRASxqjWXW6vaHA1cnjOtwZUaylOJryLDTlzP91Uy1+rsjO7ZHxrJw2/tPzoFLDd8uBoqzQESz+Y8yq5RKJ/osRsH4/r1gVA2efrAOcvXpozg4P1mUJnOuhhcslfrESqJVz2JgvDMtq8uVmG0nH/yyquwgvvpD1MMcixWnS89qKnIPRV+zcBZ3soIzC6ikGBLh8B+JnhXdhYzF8xqYrDy5VaJn3P4NOGy67ebwiYQJ0y3+c6whW52q19GIpGK7gRHj5NEWUUSd6t69LyM/mSsx+ubDqLqXu+uzqrnL9yDjLpnX2FxiyapkaGmD4siqgJtUwngEaCpqo/L5ZLJtFmBmc77dAVU271r9TDI+1/angZv+7QYYIvfC2c7DCd6QMzKA5DOzM9it230z+YvE3AuXys2RDZuRjmxODSTfdBXnXCTq6Pi43eEAd+YLFkhmxkQvwCELUVLZZQAZlhM6158k= openshift@dhcpserver",
        "rootdevicehints_devicename": "/dev/sda"
  }
 }
 ```
-		* Next, the IPMI interface from the chosen lab server to be linked for the SNO deployment can be created through the CreateInterface API request.
-		* The device to be linked here is the SNO node device - ocp-node
 
-		Body for interface ipmi_interface:
+h. Next, the IPMI interface from the chosen lab server to be linked for the SNO deployment can be created through the CreateInterface API request.
+
+![alt_text](Reference_Images/cp4na-ci-bmc-12.png "image_tooltip")
+
+The device to be linked here is the SNO node device - ocp-node
+
+Body for interface ipmi_interface:`
+
 ```yaml
 {
  "device": {
@@ -606,13 +683,17 @@ Body for SNO cluster properties
  },
  "name": "ipmi_interface",
  "type": "10gbase-t",
- "enabled": true,
- "mgmt_only": false
+ "enabled": **true**,
+ "mgmt_only": **false**
 }
 ```
-	* The BMC IP address is linked to the ipmi_interface interface by executing the AssignIPAddress API request.
 
-	Body:
+i. The BMC IP address is linked to the **ipmi_interface** interface by executing the **AssignIPAddress** API request. \
+
+![alt_text](Reference_Images/cp4na-aia-bmc-13.png "image_tooltip")
+
+Body:
+
 ```yaml
 {
 "family": 4,
@@ -622,13 +703,14 @@ Body for SNO cluster properties
        "device": {
            "name": "ocp-node"
        },
-       "name": "ipmi_interface"
+       "name": "ipmi_interface"     
  }
 }
 ```
-Similarly, the same set of steps can be taken to create interface data for the boot interface of the SNO node which is eno12399 for the use case here in the Billerica lab
 
-	Body of the CreateInterface API request for interface eno12399:
+Similarly, the same set of steps can be taken to create interface data for the boot interface of the SNO node which is eno12399 for the use case here in the Billerica lab.
+Body of the CreateInterface API request for interface eno12399:
+
 ```yaml
 {
  "device": {
@@ -636,15 +718,17 @@ Similarly, the same set of steps can be taken to create interface data for the b
  },
  "name": "eno12399",
  "type": "10gbase-t",
- "enabled": true,
- "lag": null,
+ "enabled": **true**,
+ "lag": **null**,
  "mtu": 1500,
  "mac_address": "B4:96:91:EC:31:EC",
- "mgmt_only": false,
+ "mgmt_only": **false**,
  "description": ""
 }
 ```
+
 Body of the AssignIPAddress API request for interface eno12399:
+
 ```yaml
 {
 "family": 4,
@@ -654,15 +738,20 @@ Body of the AssignIPAddress API request for interface eno12399:
        "device": {
            "name": "ocp-node"
        },
-       "name": "eno12399"
+       "name": "eno12399"     
  }
 }
 ```
-Next, service data has to be created for ipmi_interface to reach the BMC management IP address of the SNO node device ocp-node. This can be done through the CreateService API request.
 
-	__Note:__ The ipaddresses field contains the IPaddress ID generated when the AssignIPAddress API request is executed for the IP address of the interface ipmi_interface.
+j. Next, service data has to be created for ipmi_interface to reach the BMC management IP address of the SNO node device ocp-node. This can be done through the CreateService API request.
 
-	Body for the ipmi_service service:
+**Note:-** \
+The ipaddresses field contains the IPaddress ID generated when the AssignIPAddress API request is executed for the IP address of the interface ipmi_interface.
+
+![alt_text](Reference_Images/cp4na-cs-ipmi-svc-14.png "image_tooltip")
+
+Body for the ipmi_service service:
+
 ```yaml
 {
  "device": {
@@ -674,38 +763,52 @@ Next, service data has to be created for ipmi_interface to reach the BMC managem
  "ipaddresses": [ 4 ]
 }
 ```
-The final data to be uploaded is the automation context data which contains a JQuery needed for SNO deployment. This can be done by executing the CreateAutomationContext API request.
 
-	Body of the automation context OCP Deployment:
+k. The final data to be uploaded is the automation context data which contains a JQuery needed for SNO deployment. This can be done by executing the **CreateAutomationContext** API request.
+
+![alt_text](Reference_Images/cp4na-cac-15.png "image_tooltip")
+
+Body of the automation context OCP Deployment:
+
 ```yaml
 {
  "name": "OCP deployment",
  "descriptorName": "assembly::ocp-automation::1.0",
- "object_type": "dcim.site",
- "data_expressions": "query ocp_cluster_config($name: String!) { \r\n    sites: sites(filters: {name: $name}) {\r\n      __key: id\r\n      name\r\n      tags   \r\n      nodes: devices(filters: {device_role__name: \"ocp-node\"}) { \r\n        config_context\r\n     }\r\n      master_nodes: devices(filters: {device_role__name: \"ocp-node\"}) {\r\n        __key: id\r\n        name\r\n        tags\r\n        config_context\r\n        device_type {\r\n          manufacturer {\r\n            name\r\n          }\r\n          model\r\n        }\r\n        site {\r\n          name\r\n          region {\r\n            name\r\n          }\r\n        }\r\n        platform {\r\n          name\r\n        }\r\n        interfaces(filters: {name: \"eno12399\"}) {\r\n          name\r\n          mac_address\r\n member_interfaces {\r\n            name\r\n            mac_address\r\n          }\r\n       tagged_vlans {\r\n            vid\r\n          }\r\n          untagged_vlan {\r\n            vid\r\n          }\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        bond_interface:interfaces(filters: {name: \"eno12399\"}) {\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        ipmi_interface:interfaces(filters: {mgmt_only: true}) {\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        services(filters: {name: \"ipmi_service\"}) {\r\n          ipaddresses {\r\n            address\r\n          }\r\n          port\r\n        }\r\n      }\r\n      worker_nodes: devices(filters: {device_role__name: \"ocp-worker-node\"}) {\r\n        __key: id\r\n        name\r\n        tags\r\n        config_context\r\n        device_type {\r\n          manufacturer {\r\n            name\r\n          }\r\n          model\r\n        }\r\n        site {\r\n          name\r\n          region {\r\n            name\r\n          }\r\n        }\r\n        platform {\r\n          name\r\n        }\r\n        interfaces(filters: {name: \"ens3f0\"}) {\r\n          name\r\n          mac_address\r\n     member_interfaces {\r\n            name\r\n            mac_address\r\n          }\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n       ipmi_interface:interfaces(filters: {mgmt_only: true}) {\r\n          ip_addresses {\r\n            address\r\n           }               \r\n        }\r\n        services(filters: {name: \"ipmi_service\"}) {\r\n          ipaddresses {\r\n            address\r\n          }\r\n          port\r\n        }\r\n      }\r\n     }\r\n\r\n  provisioner: device(filters: {device_role__name: \"provisioner\"}) {\r\n    config_context\r\n  }\r\n  ddi_server: device(filters: {device_role__name: \"DHCP DNS Server\"}) {\r\n    config_context\r\n  }\r\n  git_server: device(filters: {device_role__name: \"Git Server\"}) {\r\n    config_context\r\n  }\r\n}"
+ "object_type": "**dcim.site**",
+ "data_expressions": "query ocp_cluster_config($name: String!) { \r\n    sites: sites(filters: {name: $name}) {\r\n      __key: id\r\n      name\r\n      tags   \r\n      nodes: devices(filters: {device_role__name: \"**ocp-node**\"}) { \r\n        config_context\r\n     }\r\n      master_nodes: devices(filters: {device_role__name: \"**ocp-node**\"}) {\r\n__key: id\r\n        name\r\n        tags\r\n        config_context\r\n        device_type {\r\n          manufacturer {\r\n            name\r\n          }\r\n          model\r\n        }\r\n        site {\r\n          name\r\n          region {\r\n            name\r\n          }\r\n        }\r\n        platform {\r\n          name\r\n        }\r\n        interfaces(filters: {name: \"**eno12399**\"}) {\r\n          name\r\n          mac_address\r\n member_interfaces {\r\n            name\r\n            mac_address\r\n          }\r\n       tagged_vlans {\r\n            vid\r\n          }\r\n          untagged_vlan {\r\n            vid\r\n          }\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        bond_interface:interfaces(filters: {name: \"**eno12399**\"}) {\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        **ipmi_interface**:interfaces(filters: {mgmt_only: true}) {\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n        services(filters: {name: \"**ipmi_service**\"}) {\r\n          ipaddresses {\r\n            address\r\n          }\r\n          port\r\n        }\r\n      }\r\n      worker_nodes: devices(filters: {device_role__name: \"ocp-worker-node\"}) {\r\n__key: id\r\n        name\r\n        tags\r\n        config_context\r\n        device_type {\r\n          manufacturer {\r\n            name\r\n          }\r\n          model\r\n        }\r\n        site {\r\n          name\r\n          region {\r\n            name\r\n          }\r\n        }\r\n        platform {\r\n          name\r\n        }\r\n        interfaces(filters: {name: \"ens3f0\"}) {\r\n          name\r\n          mac_address\r\n     member_interfaces {\r\n            name\r\n            mac_address\r\n          }\r\n          ip_addresses {\r\n            address\r\n          }\r\n        }\r\n       **ipmi_interface**:interfaces(filters: {mgmt_only: true}) {\r\n          ip_addresses {\r\n            address\r\n           }               \r\n        }\r\n        services(filters: {name: \"**ipmi_service**\"}) {\r\n          ipaddresses {\r\n            address\r\n          }\r\n          port\r\n        }\r\n      }\r\n     }\r\n\r\n  provisioner: device(filters: {device_role__name: \"**provisioner**\"}) {\r\n    config_context\r\n  }\r\n  ddi_server: device(filters: {device_role__name: \"**DHCP DNS Server**\"}) {\r\n    config_context\r\n  }\r\n  git_server: device(filters: {device_role__name: \"**Git Server**\"}) {\r\n    config_context\r\n  }\r\n}"
 }
 ```
+
 The values highlighted in the request body above are the corresponding values exactly as generated earlier in the form of:
-		- ocp-node device role
-		- eno12399 interface
-		- ipmi_interface interface
-		- ipmi_service service
-		- provisioner device role
-		- DHCP DNS Server device role
-		- Git Server device role
 
-		Also, the object_type field value represents an automation context of Site type so the value would be dcim.site
+- ocp-node device role
+- eno12399 interface
+- ipmi_interface interface
+- ipmi_service service
+- provisioner device role
+- DHCP DNS Server device role
+- Git Server device role
 
-10. Next, a deployment location has to be added through the CP4NA SitePlanner GUI.
+Also, the object_type field value represents an automation context of Site type so the value would be dcim.site
 
-	Go to SitePlanner UI - system → Deployment location | click Add
+9. Next, a deployment location has to be added through the CP4NA SitePlanner GUI.
 
-	Enter details for deployment location name - core
+![alt_text](Reference_Images/cp4na-deploc-16.png "image_tooltip")
+
+Go to SitePlanner UI - system → Deployment location | click Add \
+Enter details for deployment location name - <span style="text-decoration:underline;"
+
 Resource Manager - brent
-Infrastructure - openstack
-11. Now that the required data has been modeled into the SitePlanner, SNO deployment is ready to be executed. This is done by doing a “build Site” action either through the CP4NA UI or the REST API request BuildSite.
 
-	Body for the request:
+Infrastructure - openstack
+
+
+10.  Now that the required data has been modeled into the SitePlanner, SNO deployment is ready to be executed. This is done by doing a “build Site” action either through the CP4NA UI or the REST API request **BuildSite**.
+
+![alt_text](Reference_Images/cp4na-buildsite-17.png "image_tooltip")
+
+Body for the request:
+
 ```yaml
 {
  "object_type": "dcim.site",
@@ -713,36 +816,41 @@ Infrastructure - openstack
  "dry_run": false
 }
 ```
-* The object_type field represents the Site type dcim.type
-* The object_pk field represents the Site ID of Billerica that was generated earlier as part of the CreateSite API request.
 
-—----------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------
 
-12. If the above steps don’t work for a complete deployment of the SNO, the following steps may need to be added before a run.
+- The object_type field represents the Site type **dcim.site**
+- The object_pk field represents the **Site ID of Billerica** that was generated earlier as part of the CreateSite API request.
 
-	Make sure virtual disks are created in the physical lab machines to be used as an SNO node.
+11. If the above steps don’t work for a complete deployment of the SNO, the following steps may need to be added before a run.
 
-	Use hyphens instead of underscore for device roles and devices
-	* provisioner
-	* DHCP DNS Server
-	* ocp-node
-	* ocp-worker-node
+[Make sure virtual disks are created in the physical lab machines to be used as an SNO node.]
 
-	Create DNS server
+[Use hyphens instead of underscore for device roles and devices] \
+provisioner
+DHCP DNS Server
+ocp-node
+
+ocp-worker-node
+
+[ Create DNS server]
+
+![alt_text](Reference_Images/cp4na-dns-dhcp-18.png "image_tooltip")
+
 ```yaml
 {
-    "dhcp_file": "/etc/dnsmasq.d/duocpdell.lab.conf",
-    "dns_file": "/etc/hosts",
-    "host": "10.0.10.72",
-    "password": "cpna",
-    "user": "cpna"
+"dhcp_file": "/etc/dnsmasq.d/duocpdell.lab.conf",
+"dns_file": "/etc/hosts",
+"host": "10.0.10.72",
+"password": "cpna",
+"user": "cpna"
 }
 ```
-Site Billerica - tags: skip_server-automation, du, skip_ddi_automation, skip_node_config
 
-	Device - opc-node - tags: du, skip_bios_automation, skip_storage_automation, skip_firmware_automation
+[Site Billerica - tags: skip_server-automation, du, skip_ddi_automation, skip_node_config] \
+[Device - opc-node - tags: du, skip_bios_automation, skip_storage_automation, skip_firmware_automation] \
+[Make sure cpuset is defined in cluster config] \
 
-	Make sure cpuset is defined in cluster config
 ```yaml
 {
     "cluster_config": {
@@ -752,25 +860,29 @@ Site Billerica - tags: skip_server-automation, du, skip_ddi_automation, skip_nod
         "cluster_type": "sno",
         "cluster_version": "4.9",
         "profile": "du"
-    },
+},
     "cpuset": "0-3,28-31",
     "rootdevicehints_devicename": "/dev/sda",
     "ssh_public_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA64h5TYyK84L/e0/a5wtGmB1TRlnQNFgkZZpC7qSyWloD2bujfbbYb5oN8s8YHUHA2+QU4pI4V9fJk/K0X5f8Pte+Oq+EVJZznUULxi496VtnXnqFGG7zPSADMXMI4SFXMnHz2r4Akvwrg6qzoxzMctHGb7VDF+fWOuuarcvQBXqiGSu/GTHkrELMp1FBKrrb2dMYXvSua/dDMbV3DQthGfWF4EJQEPAyb+5iAdo0sWk8l4betMn5LqClnvDOEIUyrEEOWusBpKqXhQP6Wz3MvjCFITLXRKjEd+ti0l0SIKh47nGxktYyAqB8QkVx1ijlPmL0n7I9XSkQhHIAA4SBKOH7yzxgqqpPW7DSZF+YV/c/yFbTjSoSK/xd4x5Miapvnkj9Ewh6P6AUkVvDU5Ipf5SyPvvScI0IseiBhRqC8w8nAYx88oCLDCbMf8FFw962IOKwGvrJCUnbsAwjbUhtFMSUNXQ+5QdIxxUkR2KIoES+V6Hd6iYnkCovt04soV0= root@vranmgmt-dhcp-server6.rtp.raleigh.ibm.com"
 }
 ```
-Create Management Site and map to dns server, git server and provisioner_server
 
-	Do not add roles to management config context data, SNO config context data
+[Create Management Site and map to dns server, git server and provisioner_server]
 
-	For Site, no need of region
+[Do not add roles to management config context data, SNO config context data]
 
-	Do not add region in image registry config
-	For Automation context, add descriptor as ocp-automation 1.0
+[For Site, no need of region]
 
-	Download latest code for ocp-cluster-automation-develop.zip sent by Raghav
-	Insert tnco namespace for cp4na details under the management cluster config  context
+[Do not add region in image registry config]
+
+[For Automation context, add descriptor as ocp-automation 1.0]
+
+[Download latest code for ocp-cluster-automation-develop.zip sent by Raghav]
+
+[Insert tnco namespace for cp4na details under the management cluster config  context]
+
 ```yaml
-	      "cp4na": {
+        "cp4na": {
             "api_key": "hqxfCZPxoCeYAiL9V7tvZTVtAulhBK4Tt551QPcy",
             "ocp_password": "EXT.Dem0s",
             "ocp_server": "api.tnc-env13-rhocp.nca.ihost.com:6443",
@@ -779,25 +891,28 @@ Create Management Site and map to dns server, git server and provisioner_server
             "username": "admin"
         },
 ```
-Deployment location not found” - error:
 
-	Place devices other than site into Management.
+“Deployment location not found” - error:
 
-	Make sure sudo global config is done for github creds and commits
-```sh
+[Place devices other than site into Management.]
+
+[Make sure sudo global config is done for github creds and commits]
 oc apply -f assisted-deployment-pull-secret.yaml for the open-cluster-management ddinamespace
 oc get secret platform-auth-idp-credentials -n ibm-common-services -o yaml
-```
+
 To enter vault
-```sh
 ​​oc get secret cp4na-o-vault-keys -o jsonpath='{.data.alm_token}' | base64 -d
-```
+
 For extending timeout:
-In daytona
-```
-alm.daytona.resource-manager.default-timeout-duration": "10000s,
-```
-In brent
+
+![alt_text](Referfence_Images/../Reference_Images/cp4na-ext-timout-19.png "image_tooltip")
+
+[In daytona]
+
+"alm.daytona.resource-manager.default-timeout-duration": "10000s",
+
+[In brent]
+
 ```yaml
 {
   "alm.brent.asynchronousRequests.topic": "tnco-rm-transition-request",
@@ -811,11 +926,13 @@ In brent
   "": ""
 }
 ```
-Delete daytona pod
 
-	Make sure in brent the above data is same incase any change restart brent pod
+- Delete daytona pod
+- Make sure in brent the above data is same
+- incase any change restart brent pod
 
-	Config context
+Config context
+
 ```yaml
 {
     "management_cluster_config": {
@@ -844,58 +961,61 @@ Delete daytona pod
 }
 ```
 
-	FOR DEBUG
+FOR DEBUG
 
-	To do soft teardown:-
-```yaml
-oc exec cp4na-o-galileo-0 -- curl -XDELETE https://localhost:8283/api/topology/assemblies/8e9b7c5c-5b77-441b-9980-3b7c886c2f55 --insecure -n ibmcp4na
-```
-Argocd login:
-```sh
+To do soft teardown:-
+
+oc exec cp4na-o-galileo-0 -- curl -XDELETE <https://localhost:8283/api/topology/assemblies/8e9b7c5c-5b77-441b-9980-3b7c886c2f55> --insecure -n ibmcp4na
+
+Argocd login:-
+
 sudo argocd login
-cd sbin
-```
+
+Change directory to sbin
+
 Change secret from argocd-secret to openshift-gitops-cluster:-
+
 ```yaml
 {
-    "management_cluster_config": {
-        "argocd": {
-            "namespace": "openshift-gitops",
-            "route_name": "openshift-gitops-server",
-            "secret_name": "openshift-gitops-cluster",
-            "url": "openshift-gitops-server-openshift-gitops.apps.tnc-env13-rhocp.nca.ihost.com"
-        },
-        "cp4na": {
-            "api_key": "hqxfCZPxoCeYAiL9V7tvZTVtAulhBK4Tt551QPcy",
-            "ocp_password": "EXT.Dem0s",
-            "ocp_server": "api.tnc-env13-rhocp.nca.ihost.com:6443",
-            "ocp_user": "tncodevteam",
-            "tnco_namespace": "lifecycle-manager",
-            "username": "admin"
-        },
-        "max_timeout": "90",
-        "ntp_server": "10.0.10.72",
-        "rhacm": {
-            "password": "EXT.Dem0s",
-            "server": "api.tnc-env13-rhocp.nca.ihost.com:6443",
-            "user": "tncodevteam"
-        }
-    }
+"management_cluster_config": {
+"argocd": {
+"namespace": "openshift-gitops",
+"route_name": "openshift-gitops-server",
+"secret_name": "openshift-gitops-cluster",
+"url": "openshift-gitops-server-openshift-gitops.apps.tnc-env13-rhocp.nca.ihost.com"
+},
+"cp4na": {
+"api_key": "hqxfCZPxoCeYAiL9V7tvZTVtAulhBK4Tt551QPcy",
+"ocp_password": "EXT.Dem0s",
+"ocp_server": "api.tnc-env13-rhocp.nca.ihost.com:6443",
+"ocp_user": "tncodevteam",
+"tnco_namespace": "lifecycle-manager",
+"username": "admin"
+},
+"max_timeout": "90",
+"ntp_server": "10.0.10.72",
+"rhacm": {
+"password": "EXT.Dem0s",
+"server": "api.tnc-env13-rhocp.nca.ihost.com:6443",
+"user": "tncodevteam"
 }
+}
+}
+` ` `
 ```
 
-	If API endpoint is not being reached:
-	Remove last four lines in dnsmasq.conf and restart dnsmasq
+If API endpoint is not being reached:- \
+Remove last four lines in dnsmasq.conf and restart dnsmasq
 
-	Also connect argocd app to github repo [github repo link and token] under repositories section of ArgoCD
+![alt_text](Reference_Images/cp4na-ext-timout-19.png "image_tooltip")
 
-	Sync the site-management app with force ticked as prune option
-	Painpoints
+Also connect argocd app to github repo [github repo link and token] under repositories section of ArgoCD_
 
-	* Create assisted-deployment-pull-secret in open-cluster-management namespace
-	* Add ZTP github repo in argocd
-	*Add host entries in /etc/hosts
+**[Sync the site-management app with force ticked as prune option]
 
+Painpoints
 
-https://access.redhat.com/solutions/6824171 [bmh stuck in preparing state]
-
+– Create assisted-deployment-pull-secret in open-cluster-management namespace
+– Add ZTP github repo in argocd
+– Add host entries in /etc/hosts
+- [https://access.redhat.com/solutions/6824171](https://access.redhat.com/solutions/6824171) [bmh stuck in preparing state]
